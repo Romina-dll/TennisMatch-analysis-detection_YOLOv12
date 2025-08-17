@@ -46,10 +46,12 @@ class PlayerTracker:
             - Key (int): Player tracking ID (persistent across frames)
             - Value (list[float]): Bounding box coordinates [x1, y1, x2, y2]
     """
-    def detect_frames(self, frames):
-    
+    def detect_frames(self, frames , read_from_stub= False , stub_path=None):
         player_detections = []  # Initialize empty list to store frame-by-frame results
-        
+        if read_from_stub and stub_path is not None:
+            with open(stub_path, 'rb') as f :
+                player_detections = pickle.load(f)
+                return player_detections
         for frame in frames:
             # Detect players in current frame and get dictionary of:
             # {track_id: [x1, y1, x2, y2]} mappings
@@ -57,7 +59,9 @@ class PlayerTracker:
             
             # Append results for current frame to overall detections list
             player_detections.append(player_dict)
-        
+        if stub_path is not None:
+            with open(stub_path , 'wb') as f:
+                pickle.dump(player_detections , f)
         return player_detections
 
     """

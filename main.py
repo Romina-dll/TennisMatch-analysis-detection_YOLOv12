@@ -27,7 +27,11 @@ def main():
     # Step 3: Player Detection
     # Process all frames to detect and track players
     # Returns list of dictionaries with {player_id: bbox} per frame
-    player_detections = player_tracker.detect_frames(video_frames)
+    player_detections = player_tracker.detect_frames(
+        video_frames,
+        read_from_stub=True,
+        stub_path='tracker_stubs/player_detection.pkl'
+        )
     
     # Step 4: Visualization
     # Annotate frames with bounding boxes and player IDs

@@ -26,3 +26,4 @@ ENV/
 
 input_videos/
 output_videos/
+models/

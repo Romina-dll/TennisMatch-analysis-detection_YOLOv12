@@ -1,5 +1,5 @@
-from utils import read_video, save_video  # Custom video I/O utilities
-from trackers import PlayerTracker  # Player detection and tracking module
+from utils import read_video, save_video  
+from trackers import PlayerTracker , BallTracker  
 
 """
 Main execution function for player tracking pipeline.
@@ -23,22 +23,29 @@ def main():
     # Step 2: Tracker Initialization
     # Load YOLO model with custom player detection weights
     player_tracker = PlayerTracker(model_path='yolo12n.pt')
+    #Load YOLOv model with custom ball detection weights
+    ball_tracker = BallTracker(model_path='models/ball_detection_best.pt')
+    
     
     # Step 3: Player Detection
-    # Process all frames to detect and track players
+    # Process all frames to detect and track players , ball
     # Returns list of dictionaries with {player_id: bbox} per frame
     player_detections = player_tracker.detect_frames(
         video_frames,
-        read_from_stub=True,
-        stub_path='tracker_stubs/player_detection.pkl'
-        )
+        read_from_stub=True,   # Tells function to load precomputed results
+        stub_path='tracker_stubs/player_detection.pkl') # Path to the saved detections file
     
+    # Returns list of dictionaries with {ball_id: bbox} per frame
+    ball_detection = ball_tracker.detect_frames(video_frames ,read_from_stub=True , stub_path='tracker_stubs/ball_detection.pkl')
+
     # Step 4: Visualization
     # Annotate frames with bounding boxes and player IDs
     output_video_frames = player_tracker.draw_bboxes(
         video_frames, 
         player_detections
     )
+    # Annotate frames with bounding boxes and Ball IDs
+    output_video_frames = ball_tracker.draw_bboxes(video_frames, ball_detection)
     
     # Step 5: Output Generation
     # Save processed video with visualizations

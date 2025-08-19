@@ -1,5 +1,6 @@
 from utils import read_video, save_video  
 from trackers import PlayerTracker , BallTracker  
+from court_line_detector import CourtLineDetector
 
 """
 Main execution function for player tracking pipeline.
@@ -25,7 +26,11 @@ def main():
     player_tracker = PlayerTracker(model_path='yolo12n.pt')
     #Load YOLOv model with custom ball detection weights
     ball_tracker = BallTracker(model_path='models/ball_detection_best.pt')
-    
+    # Initialize court line detector with trained keypoints model
+    court_model_path = 'models/keypoints_model_50.pth'
+    court_line_detector = CourtLineDetector(model_path=court_model_path)
+    # Detect court keypoints from the first frame of the video
+    court_keypoints = court_line_detector.predict(video_frames[0])
     
     # Step 3: Player Detection
     # Process all frames to detect and track players , ball
@@ -34,7 +39,11 @@ def main():
         video_frames,
         read_from_stub=True,   # Tells function to load precomputed results
         stub_path='tracker_stubs/player_detection.pkl') # Path to the saved detections file
-    
+    # Filter and choose only relevant players based on court keypoints
+    player_detections = player_tracker.choose_and_filter_players(
+        court_keypoints,
+        player_detections
+    )
     # Returns list of dictionaries with {ball_id: bbox} per frame
     ball_detection = ball_tracker.detect_frames(video_frames ,read_from_stub=True , stub_path='tracker_stubs/ball_detection.pkl')
 
@@ -46,6 +55,8 @@ def main():
     )
     # Annotate frames with bounding boxes and Ball IDs
     output_video_frames = ball_tracker.draw_bboxes(video_frames, ball_detection)
+    # Draw court keypoints on video frames
+    output_video_frames = court_line_detector.draw_keypoints_on_video(output_video_frames , court_keypoints)
     
     # Step 5: Output Generation
     # Save processed video with visualizations

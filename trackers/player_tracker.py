@@ -1,6 +1,7 @@
 import cv2  
 import pickle  # For serializing/deserializing Python objects
 from ultralytics import YOLO 
+from utils import measure_distance , get_center_bbox
 
 """
 A class for tracking players in video frames using YOLO object detection.
@@ -12,6 +13,50 @@ Features:
 class PlayerTracker:
     def __init__(self, model_path):
         self.model = YOLO(model_path)  
+
+    """
+    Select the two closest players to the court keypoints and filter detections.
+    Args:
+        court_keypoints (list): List of keypoints representing positions on the court.
+        player_detections (list[dict]): List of player detection dictionaries for each frame.
+    Returns:
+        list[dict]: Filtered player detections for each frame, keeping only the chosen players.
+    """
+    def choose_and_filter_players(self , court_keypoints , player_detections):
+        player_detection_first_frame = player_detections[0]
+        chosen_player = self.choose_players(court_keypoints,player_detection_first_frame)
+        filtered_player_detections = []
+        for player_det in player_detections:
+            filter_player_dict = {track_id : bbox for track_id, bbox in player_det.items() if track_id in chosen_player}
+            filtered_player_detections.append(filter_player_dict)
+        return filtered_player_detections
+
+    """
+    Determine the two players closest to the court keypoints.
+    Args:
+        court_keypoints (list): List of keypoints representing positions on the court.
+        player_dict (dict): Dictionary of detected players in a frame {track_id: bbox}.
+    Returns:
+        list: List of two chosen player track IDs closest to the court keypoints.
+    """
+    def choose_players(self, court_keypoints, player_dict):
+        distances = []
+        for track_id, bbox in player_dict.items():
+            # Get the center coordinates of the player's bounding box
+            player_center = get_center_bbox(bbox)
+            min_distance = float('inf')
+            for i in range(0, len(court_keypoints), 2):
+                court_keypoint = (court_keypoints[i], court_keypoints[i + 1])
+                distance = measure_distance(player_center, court_keypoint)
+                if distance < min_distance: # Update minimum distance if this keypoint is closer
+                    min_distance = distance
+            # Store the player's track_id with its closest distance to any court keypoint
+            distances.append((track_id, min_distance))
+        #Sort the distances in ascending order
+        distances.sort(key = lambda x: x[1])
+        #Choose the first two tracks
+        chosen_players = [distances[0][0], distances[1][0]]
+        return chosen_players
 
     """
     Detect and track players in a single video frame.
